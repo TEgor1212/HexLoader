@@ -1,0 +1,124 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  lint:
+    name: Lint (gofmt + go vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Check formatting (gofmt)
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...
+
+  test:
+    name: Tests (GUI deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Install GUI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev \
+            xorg-dev \
+            libwayland-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgles2-mesa-dev \
+            libpulse-dev
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v -count=1 ./...
+
+  release:
+    name: Release
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary_name: hexloader-linux-x64
+            CGO_ENABLED: 1
+
+          - os: macos-14
+            binary_name: hexloader-macos-arm64
+            CGO_ENABLED: 1
+
+          - os: windows-latest
+            binary_name: hexloader-windows-x64.exe
+            CGO_ENABLED: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Install GUI dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev \
+            xorg-dev \
+            libwayland-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgles2-mesa-dev \
+            libpulse-dev
+
+      - name: Install GUI dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install mingw --no-progress
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: ${{ matrix.CGO_ENABLED }}
+        run: go build -ldflags="-s -w" -o ${{ matrix.binary_name }} .
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary_name }}
+          path: ${{ matrix.binary_name }}
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.binary_name }}
+          tag_name: v0.1.${{ github.run_number }}
+          name: "HexLoader v0.1.${{ github.run_number }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
