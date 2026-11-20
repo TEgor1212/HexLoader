@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image/color"
 	"os/exec"
-	"os/user"
 	"strings"
 	"time"
 
