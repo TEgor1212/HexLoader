@@ -1,8 +1,8 @@
 name: CI/CD
-
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -72,7 +72,9 @@ jobs:
   release:
     name: Release
     needs: [lint, test]
-    if: github.ref == 'refs/heads/main'
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -81,7 +83,7 @@ jobs:
             binary_name: hexloader-linux-x64
             CGO_ENABLED: 1
 
-          - os: macos-14
+          - os: macos-latest
             binary_name: hexloader-macos-arm64
             CGO_ENABLED: 1
 
@@ -132,4 +134,3 @@ jobs:
           name: "HexLoader v0.1.${{ github.run_number }}"
           draft: false
           prerelease: false
-          generate_release_notes: true
