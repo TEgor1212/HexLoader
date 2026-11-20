@@ -40,7 +40,7 @@ func TestCalculateChecksum(t *testing.T) {
 		{[]byte{0x00}, 0x00},
 		{[]byte{0xFF}, 0xFF},
 		{[]byte{0x01, 0x02}, 0x03},
-		{[]byte{0x10, 0x20, 0x30, 0x40}, 0x60},  // 10 ^ 20 ^ 30 ^ 40 = 60
+		{[]byte{0x10, 0x20, 0x30, 0x40}, 0x60}, // 10 ^ 20 ^ 30 ^ 40 = 60
 		{[]byte{0xAB, 0xCD, 0xEF}, 0xAB ^ 0xCD ^ 0xEF},
 	}
 	for _, tc := range tests {
@@ -61,10 +61,10 @@ func TestHexToBytes(t *testing.T) {
 		{"0102", []byte{0x01, 0x02}, false},
 		{"deadbeef", []byte{0xde, 0xad, 0xbe, 0xef}, false},
 		{"DEADBEEF", []byte{0xde, 0xad, 0xbe, 0xef}, false},
-		{"a", nil, true},       // odd length
-		{"xyz", nil, true},     // invalid characters
-		{"0x01", nil, true},    // 0x prefix not supported in this raw parser
-		{"1G", nil, true},      // invalid character 'G'
+		{"a", nil, true},    // odd length
+		{"xyz", nil, true},  // invalid characters
+		{"0x01", nil, true}, // 0x prefix not supported in this raw parser
+		{"1G", nil, true},   // invalid character 'G'
 	}
 	for _, tc := range tests {
 		result, err := HexToBytes(tc.input)
